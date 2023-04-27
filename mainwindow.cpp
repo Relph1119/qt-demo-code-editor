@@ -19,6 +19,7 @@
 QList<QString> getHistory();
 void saveHistory(QString path);
 
+// 配置文件，用于保存打开文件的历史记录
 QSettings *mSettings;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -44,48 +45,61 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+// 初始化最近打开的文件列表
 void MainWindow::initMenu()
 {
+    // 获取Menu
     QMenu *recent = this->findChild<QMenu *>("recent");
+    // 获取Action
     QSet<QObject *> chList = recent->children().toSet();
     foreach (QObject *ch, chList) {
         QAction *action = (QAction *) ch;
+        // 清空子菜单Action
         recent->removeAction(action);
     }
 
     QList<QString> list = getHistory();
 
+    // 设置菜单的执行事件，将最近打开的文件放在最前面
     for(int i = list.size() - 1; i >= 0; i--) {
+        // 生成子菜单Action
         recent->addAction(list[i], this, &MainWindow::on_open_recent_file);
     }
 
+    // 添加清除历史记录
     if(list.size() > 0) {
         recent->addAction("清除历史记录", this, &MainWindow::on_clear_history_triggered, QKeySequence("Ctrl+Alt+Shift+C"));
     }
 }
 
 
-
+// 获取历史记录
 QList<QString> getHistory() {
+    // 打开开始读，获取数组长度
     int size = mSettings->beginReadArray("history");
 
+    // 创建返回对象
     QList<QString> list;
     for(int i = 0; i < size; i++) {
         mSettings->setArrayIndex(i);
+        // 读取文件路径
         QString path = mSettings->value("path").toString();
         list.append(path);
         qDebug() << i << ":" << path;
     }
 
+    // 关闭读
     mSettings->endArray();
     return list;
 }
 
+// 保存打开文件的历史记录
 void saveHistory(QString path) {
 
+    // 获取历史记录
     QList<QString> list = getHistory();
 
-    // 不能使用list = list.toSet().toList()，会导致顺序乱了
+    // 去重，不能使用list = list.toSet().toList()，会导致顺序乱了
     foreach(QString str, list) {
         if(str == path) {
             list.removeOne(str);
@@ -95,14 +109,17 @@ void saveHistory(QString path) {
 
     mSettings->endArray();
 
+    // 打开开始写入
     mSettings->beginWriteArray("history");
 
     for(int i = 0; i < list.size(); i++) {
+        // 将该配置放到最后一个
         mSettings->setArrayIndex(i);
-        // save string
+        // 保存字符串
         mSettings->setValue("path", list[i]);
     }
 
+    // 关闭开始写入，需要与beginWriteArray成对出现
     mSettings->endArray();
 }
 
@@ -114,11 +131,14 @@ void MainWindow::on_new_file_triggered()
     ui->textEdit->setText("");
 }
 
-
+// 打开最近打开的文件
 void MainWindow::on_open_recent_file()
 {
+    // 得到当前点击的事件
     QAction *action = (QAction *) sender();
+    // 设置当前事件指向的文件名
     QString fileName = action->text();
+    // 打开文件
     QFile file(fileName);
     if(!file.open(QIODevice::ReadOnly | QFile::Text)) {
         QMessageBox::warning(this, "警告", "无法打开此文件，报错信息：\n" + file.errorString());
@@ -132,6 +152,7 @@ void MainWindow::on_open_recent_file()
     file.close();
 
     saveHistory(currentFile);
+    initMenu();
 }
 
 // 打开文件
@@ -155,7 +176,6 @@ void MainWindow::on_open_file_triggered()
     file.close();
 
     saveHistory(currentFile);
-    initMenu();
 }
 
 // 保存文件
