@@ -13,6 +13,7 @@
 #if QT_CONFIG(printdialog)
 #include <QPrintDialog>
 #endif
+#include <MyTextEditByCode.h>
 #include <QPrinter>
 #endif
 #endif
@@ -127,10 +128,15 @@ void saveHistory(QString path) {
 // 新建文件
 void MainWindow::on_new_file_triggered()
 {
-    // 设置自定义的UI
-    MyTextEdit * myTextEdit = new MyTextEdit(this);
+    // 纯代码自定义组件
+    MyTextEditByCode * myTextEditByCode = new MyTextEditByCode(this);
+    ui->tabWidget->addTab(myTextEditByCode, "NewTab.txt");
+
     // 添加Tab页签
-    ui->tabWidget->addTab(myTextEdit, "NewTab.txt");
+//    MyTextEdit * myTextEdit = new MyTextEdit(this);
+    // 设置自定义的UI
+//    ui->tabWidget->addTab(myTextEdit, "NewTab.txt");
+
 
 //    qDebug() << "Start Create New File...";
 //    currentFile.clear();

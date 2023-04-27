@@ -22,9 +22,11 @@ private slots:
     void textEditVScrollBarChanged();
     void textBrowserVScrollBarChanged();
     void onTextChanged();
-
+    void hightlightCurrentLint();
 private:
     Ui::MyTextEdit *ui;
+    QFont mFont;
+
     void initConnect();
     void initFont();
     void initHighlighter();

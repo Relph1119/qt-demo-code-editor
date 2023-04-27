@@ -2,7 +2,7 @@
 #include "ui_mytextedit.h"
 #include "QDebug"
 
-#include <MyHighlighter.h>
+#include <myhighlighter.h>
 
 MyTextEdit::MyTextEdit(QWidget *parent) :
     QWidget(parent),
@@ -19,6 +19,8 @@ MyTextEdit::MyTextEdit(QWidget *parent) :
     // 初始化高亮
     initHighlighter();
 
+    // 行高亮
+    hightlightCurrentLint();
 }
 
 MyTextEdit::~MyTextEdit()
@@ -28,25 +30,50 @@ MyTextEdit::~MyTextEdit()
 
 void MyTextEdit::initConnect()
 {
+    // textChanged
     connect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(onTextChanged()));
 
+    // 滚动条
     connect(ui->textEdit->horizontalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(textEditHScrollBarChanged()));
     connect(ui->horizontalScrollBar, SIGNAL(valueChanged(int)), this, SLOT(scrollBarChanged()));
-
     connect(ui->textEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(textEditVScrollBarChanged()));
     connect(ui->textBrowser->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(textBrowserVScrollBarChanged()));
+
+    // cursor
+    connect(ui->textEdit, SIGNAL(cursorPositionChanged()), this, SLOT(hightlightCurrentLint()));
 }
 
 void MyTextEdit::initFont()
 {
-    QFont font("Consolas", 14);
-    ui->textEdit->setFont(font);
-    ui->textBrowser->setFont(font);
+    mFont = QFont("Consolas", 14);
+    ui->textEdit->setFont(mFont);
+    // 解决行高问题
+    QTextBlockFormat format;
+    format.setLineHeight(QFontMetrics(mFont).height() * 1.1, QTextBlockFormat::FixedHeight);
+
+    QTextCursor cursor = ui->textEdit->textCursor();
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(format);
+    ui->textBrowser->setFont(mFont);
 }
 
 void MyTextEdit::initHighlighter()
 {
     new MyHighlighter(ui->textEdit->document());
+}
+
+void MyTextEdit::hightlightCurrentLint()
+{
+    QList<QTextEdit::ExtraSelection> extraSelections;
+
+    QTextEdit::ExtraSelection selection;
+    selection.format.setBackground(QColor(0, 100, 100, 20));
+    selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+    selection.cursor = ui->textEdit->textCursor();
+//    selection.cursor.clearSelection();
+    extraSelections.append(selection);
+
+    ui->textEdit->setExtraSelections(extraSelections);
 }
 
 void MyTextEdit::textEditHScrollBarChanged()
@@ -65,6 +92,9 @@ void MyTextEdit::scrollBarChanged()
 
 void MyTextEdit::textEditVScrollBarChanged()
 {
+    ui->textBrowser->verticalScrollBar()->setMaximum(ui->textEdit->verticalScrollBar()->maximum());
+    ui->textBrowser->verticalScrollBar()->setMinimum(ui->textEdit->verticalScrollBar()->minimum());
+    ui->textBrowser->verticalScrollBar()->setPageStep(ui->textEdit->verticalScrollBar()->pageStep());
     ui->textBrowser->verticalScrollBar()->setValue(ui->textEdit->verticalScrollBar()->value());
 }
 
@@ -94,4 +124,12 @@ void MyTextEdit::onTextChanged()
 
     ui->textBrowser->setMaximumWidth(25 + QString::number(lineCountOfTextEdit).length()*15);
     ui->textBrowser->setText(text);
+
+    // 解决行高问题
+    QTextBlockFormat format;
+    format.setLineHeight(QFontMetrics(mFont).height() * 1.1, QTextBlockFormat::FixedHeight);
+    format.setAlignment(Qt::AlignRight);
+    QTextCursor cursor = ui->textBrowser->textCursor();
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(format);
 }

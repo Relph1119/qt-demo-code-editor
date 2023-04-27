@@ -14,12 +14,14 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     myhighlighter.cpp \
-    mytextedit.cpp
+    mytextedit.cpp \
+    mytexteditbycode.cpp
 
 HEADERS += \
     mainwindow.h \
     myhighlighter.h \
-    mytextedit.h
+    mytextedit.h \
+    mytexteditbycode.h
 
 FORMS += \
     mainwindow.ui \
