@@ -53,6 +53,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
+    // 当前文件名
     QString currentFile;
 
     void initMenu();
