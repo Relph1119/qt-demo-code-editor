@@ -21,11 +21,27 @@
    <widget class="QTextEdit" name="textEdit">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>0</y>
+      <x>570</x>
+      <y>140</y>
       <width>104</width>
       <height>70</height>
      </rect>
+    </property>
+   </widget>
+   <widget class="QTabWidget" name="tabWidget">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>127</width>
+      <height>80</height>
+     </rect>
+    </property>
+    <property name="tabShape">
+     <enum>QTabWidget::Triangular</enum>
+    </property>
+    <property name="currentIndex">
+     <number>-1</number>
     </property>
    </widget>
   </widget>
@@ -95,9 +111,9 @@
    </attribute>
    <addaction name="new_file"/>
    <addaction name="open_file"/>
-   <addaction name="print"/>
    <addaction name="save_file"/>
    <addaction name="save_as"/>
+   <addaction name="print"/>
   </widget>
   <widget class="QToolBar" name="toolBar_2">
    <property name="windowTitle">
@@ -123,10 +139,10 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="font"/>
+   <addaction name="underline"/>
    <addaction name="bolder"/>
    <addaction name="italic"/>
-   <addaction name="underline"/>
-   <addaction name="font"/>
   </widget>
   <widget class="QToolBar" name="toolBar_4">
    <property name="windowTitle">

@@ -12,13 +12,18 @@ qtHaveModule(printsupport): QT+=printsupport
 
 SOURCES += \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    myhighlighter.cpp \
+    mytextedit.cpp
 
 HEADERS += \
-    mainwindow.h
+    mainwindow.h \
+    myhighlighter.h \
+    mytextedit.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    mytextedit.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "mytextedit.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
 #include <QFileDialog>
@@ -28,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     // 设置文本框居中
-    this->setCentralWidget(ui->textEdit);
+    this->setCentralWidget(ui->tabWidget);
     if (mSettings == NULL) {
         mSettings = new QSettings("settings.ini", QSettings::IniFormat);
     }
@@ -126,9 +127,14 @@ void saveHistory(QString path) {
 // 新建文件
 void MainWindow::on_new_file_triggered()
 {
-    qDebug() << "Start Create New File...";
-    currentFile.clear();
-    ui->textEdit->setText("");
+    // 设置自定义的UI
+    MyTextEdit * myTextEdit = new MyTextEdit(this);
+    // 添加Tab页签
+    ui->tabWidget->addTab(myTextEdit, "NewTab.txt");
+
+//    qDebug() << "Start Create New File...";
+//    currentFile.clear();
+//    ui->textEdit->setText("");
 }
 
 // 打开最近打开的文件
