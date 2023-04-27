@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "mycodeeditor.h"
 #include "mytextedit.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
@@ -129,8 +130,12 @@ void saveHistory(QString path) {
 void MainWindow::on_new_file_triggered()
 {
     // 纯代码自定义组件
-    MyTextEditByCode * myTextEditByCode = new MyTextEditByCode(this);
-    ui->tabWidget->addTab(myTextEditByCode, "NewTab.txt");
+//    MyTextEditByCode * myTextEditByCode = new MyTextEditByCode(this);
+//    ui->tabWidget->addTab(myTextEditByCode, "NewTab.txt");
+
+    // 使用QPlainTextEdit
+    MyCodeEditor * myCodeEditor = new MyCodeEditor(this);
+    ui->tabWidget->addTab(myCodeEditor, "NewTab.txt");
 
     // 添加Tab页签
 //    MyTextEdit * myTextEdit = new MyTextEdit(this);
