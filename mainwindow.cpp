@@ -1,12 +1,11 @@
 #include "mainwindow.h"
-#include "mycodeeditor.h"
-#include "mytextedit.h"
 #include "ui_mainwindow.h"
-#include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QFontDialog>
 #include <QSettings>
+#include <QTextStream>
+#include <QFont>
 
 #if defined(QT_PRINTSUPPORT_LIB)
 #include <QtPrintSupport/qtprintsupportglobal.h>
@@ -14,16 +13,9 @@
 #if QT_CONFIG(printdialog)
 #include <QPrintDialog>
 #endif
-#include <MyTextEditByCode.h>
 #include <QPrinter>
 #endif
 #endif
-
-QList<QString> getHistory();
-void saveHistory(QString path);
-
-// 配置文件，用于保存打开文件的历史记录
-QSettings *mSettings;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -32,11 +24,17 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     // 设置文本框居中
     this->setCentralWidget(ui->tabWidget);
-    if (mSettings == NULL) {
-        mSettings = new QSettings("settings.ini", QSettings::IniFormat);
-    }
 
+    mSettings = new QSettings("settings.ini", QSettings::IniFormat);
+
+    // 初始化菜单
     initMenu();
+
+    // 初始化字体
+    initFont();
+
+    // 初始化动作
+    initAction();
 
 #if !QT_CONFIG(printer)
     ui->print->setEnabled(false);
@@ -46,6 +44,24 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::initFont()
+{
+    mfontFamily = mSettings->value("font_family", "Consolas").toString();
+    mfontSize = mSettings->value("font_size", 14).toInt();
+}
+
+void MainWindow::initAction()
+{
+    bool vaild = ui->tabWidget->count() > 0;
+    ui->save_file->setEnabled(vaild);
+    ui->save_as->setEnabled(vaild);
+    ui->copy->setEnabled(vaild);
+    ui->paste->setEnabled(vaild);
+    ui->cut->setEnabled(vaild);
+    ui->undo->setEnabled(vaild);
+    ui->redo->setEnabled(vaild);
 }
 
 // 初始化最近打开的文件列表
@@ -77,7 +93,7 @@ void MainWindow::initMenu()
 
 
 // 获取历史记录
-QList<QString> getHistory() {
+QList<QString> MainWindow::getHistory() {
     // 打开开始读，获取数组长度
     int size = mSettings->beginReadArray("history");
 
@@ -88,7 +104,6 @@ QList<QString> getHistory() {
         // 读取文件路径
         QString path = mSettings->value("path").toString();
         list.append(path);
-        qDebug() << i << ":" << path;
     }
 
     // 关闭读
@@ -97,8 +112,7 @@ QList<QString> getHistory() {
 }
 
 // 保存打开文件的历史记录
-void saveHistory(QString path) {
-
+void MainWindow::saveHistory(QString path) {
     // 获取历史记录
     QList<QString> list = getHistory();
 
@@ -129,23 +143,10 @@ void saveHistory(QString path) {
 // 新建文件
 void MainWindow::on_new_file_triggered()
 {
-    // 纯代码自定义组件
-//    MyTextEditByCode * myTextEditByCode = new MyTextEditByCode(this);
-//    ui->tabWidget->addTab(myTextEditByCode, "NewTab.txt");
-
     // 使用QPlainTextEdit
-    MyCodeEditor * myCodeEditor = new MyCodeEditor(this);
-    ui->tabWidget->addTab(myCodeEditor, "NewTab.txt");
-
-    // 添加Tab页签
-//    MyTextEdit * myTextEdit = new MyTextEdit(this);
-    // 设置自定义的UI
-//    ui->tabWidget->addTab(myTextEdit, "NewTab.txt");
-
-
-//    qDebug() << "Start Create New File...";
-//    currentFile.clear();
-//    ui->textEdit->setText("");
+    MyCodeEditor * myCodeEditor = new MyCodeEditor(this, QFont(mfontFamily, mfontSize));
+    ui->tabWidget->addTab(myCodeEditor, "NewFile.txt");
+    initAction();
 }
 
 // 打开最近打开的文件
@@ -155,114 +156,103 @@ void MainWindow::on_open_recent_file()
     QAction *action = (QAction *) sender();
     // 设置当前事件指向的文件名
     QString fileName = action->text();
-    // 打开文件
-    QFile file(fileName);
-    if(!file.open(QIODevice::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, "警告", "无法打开此文件，报错信息：\n" + file.errorString());
-        return;
-    }
-    currentFile = fileName;
-    setWindowTitle(fileName);
-    QTextStream in(&file);
-    QString text = in.readAll();
-    ui->textEdit->setText(text);
-    file.close();
 
-    saveHistory(currentFile);
-    initMenu();
+    createTab(fileName);
 }
+
 
 // 打开文件
 void MainWindow::on_open_file_triggered()
 {
     // 获得打开文件弹出框的文件名称
     QString fileName = QFileDialog::getOpenFileName(this, "打开文件");
-    // 得到文件句柄
+    createTab(fileName);
+}
+
+// 创建Tab
+void MainWindow::createTab(QString fileName)
+{
+    // 打开文件
     QFile file(fileName);
-    if (!file.open(QIODevice::ReadOnly | QFile::Text) ) {
-        QMessageBox::warning(this, "警告", "无法打开此文件，错误信息：\n" + file.errorString());
+    if(!file.open(QIODevice::ReadOnly | QFile::Text)) {
+        QMessageBox::warning(this, "警告", "无法打开此文件，报错信息：\n" + file.errorString());
         return;
     }
-    currentFile = fileName;
-    // 设置标题为文件名
     setWindowTitle(fileName);
-    // 读取文件内容
     QTextStream in(&file);
     QString text = in.readAll();
-    ui->textEdit->setText(text);
-    file.close();
 
-    saveHistory(currentFile);
+    // 创建对象
+    MyCodeEditor *codeEditor = new MyCodeEditor(this, QFont(mfontFamily, mfontSize));
+    codeEditor->setPlainText(text);
+
+    // 设置文件名
+    codeEditor->setFileName(fileName);
+    // 添加tab
+    ui->tabWidget->addTab(codeEditor, fileName);
+    // 设置当前文件的索引
+    ui->tabWidget->setCurrentIndex(ui->tabWidget->count() - 1);
+
+    file.close();
+    saveHistory(fileName);
+    initMenu();
+    initAction();
 }
 
 // 保存文件
 void MainWindow::on_save_file_triggered()
 {
-    QString fileName;
-    if (currentFile.isEmpty()) {
-        // 提示用户输入文件名，并获取保存文件的文件名
-        fileName = QFileDialog::getSaveFileName(this, "保存文件");
-        currentFile = fileName;
-    } else {
-        fileName = currentFile;
-    }
-    QFile file(fileName);
-    // 处理文件保存异常
-    if (!file.open(QIODevice::WriteOnly | QFile::Text)) {
-        QMessageBox::warning(this, "警告", "无法保存文件，报错信息：\n" + file.errorString());
-        return;
-    }
-    setWindowTitle(fileName);
-    // 保存文件内容
-    QTextStream out(&file);
-    QString text = ui->textEdit->toHtml();
-    out << text;
-    file.close();
+    // 将保存交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
 
-    saveHistory(currentFile);
-    initMenu();
+    if (codeEditor) {
+        if(codeEditor->saveFile()) {
+            saveSuccessAction(codeEditor);
+        }
+    }
 }
 
 // 另存为
 void MainWindow::on_save_as_triggered()
 {
-    // 获取另存为的文件名
-    QString fileName = QFileDialog::getSaveFileName(this, "另存文件");
+    // 将另存为交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
 
-    QFile file(fileName);
-    // 处理另存为文件异常
-    if (!file.open(QIODevice::WriteOnly | QFile::Text)) {
-        QMessageBox::warning(this, "警告", "无法保存文件，报错信息：\n" + file.errorString());
-        return;
+    if (codeEditor) {
+        if(codeEditor->saveAsFile()) {
+            saveSuccessAction(codeEditor);
+        }
     }
-    currentFile = fileName;
-    setWindowTitle(fileName);
-    // 保存文件内容
-    QTextStream out(&file);
-    QString text = ui->textEdit->toHtml();
-    out << text;
-    file.close();
-
-    saveHistory(currentFile);
-    initMenu();
 }
 
 // 粘贴
 void MainWindow::on_paste_triggered()
 {
-    ui->textEdit->paste();
+    // 将粘贴交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
+    if (codeEditor) {
+        codeEditor->paste();
+    }
 }
 
 // 剪切
 void MainWindow::on_cut_triggered()
 {
-    ui->textEdit->cut();
+    // 将剪切交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
+    if (codeEditor) {
+        codeEditor->cut();
+    }
 }
 
 // 复制
 void MainWindow::on_copy_triggered()
 {
-    ui->textEdit->copy();
+    // 将复制交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
+    if (codeEditor) {
+        codeEditor->copy();
+    }
 }
 
 // 字体
@@ -270,10 +260,15 @@ void MainWindow::on_font_triggered()
 {
     bool fontSelected;
     // 打开字体对话框
-    QFont font = QFontDialog::getFont(&fontSelected, this);
+    QFont font = QFontDialog::getFont(&fontSelected, QFont(mfontFamily, mfontSize), this);
     if (fontSelected) {
-        // 设置字体
-        ui->textEdit->setFont(font);
+        // 将复制交给CodeEditor
+        MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
+        if (codeEditor) {
+            codeEditor->setAllFont(font);
+        }
+        mSettings->setValue("font_family", font.family());
+        mSettings->setValue("font_size", font.pointSize());
     }
 }
 
@@ -286,13 +281,21 @@ void MainWindow::on_about_triggered()
 // 撤销
 void MainWindow::on_undo_triggered()
 {
-    ui->textEdit->undo();
+    // 将撤销交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
+    if (codeEditor) {
+        codeEditor->undo();
+    }
 }
 
 // 取消撤销
 void MainWindow::on_redo_triggered()
 {
-    ui->textEdit->redo();
+    // 将取消撤销交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
+    if (codeEditor) {
+        codeEditor->redo();
+    }
 }
 
 // 退出
@@ -304,42 +307,74 @@ void MainWindow::on_exit_triggered()
 // 打印
 void MainWindow::on_print_triggered()
 {
+    // 把打印交给CodeEditor
+    MyCodeEditor *codeEditor  = (MyCodeEditor*) ui->tabWidget->currentWidget();
+    if (codeEditor) {
 #if defined (QT_PRINTSUPPORT_LIB) && QT_CONFIG(printer)
-    // 获得打印设备
-    QPrinter printDev;
+        // 获得打印设备
+        QPrinter printDev;
 #if QT_CONFIG(printdialog)
-    // 打开打印窗口
-    QPrintDialog dialog(&printDev, this);
-    if(dialog.exec() == QDialog::Rejected) {
-        return;
+        // 打开打印窗口
+        QPrintDialog dialog(&printDev, this);
+        if(dialog.exec() == QDialog::Rejected) {
+            return;
+        }
+#endif
+        // 将文本框中的内容进行打印
+        codeEditor->print(&printDev);
+#endif
     }
-#endif
-    // 将文本框中的内容进行打印
-    ui->textEdit->print(&printDev);
-#endif
 }
-
-// 加粗
-void MainWindow::on_bolder_triggered(bool bolder)
-{
-    ui->textEdit->setFontWeight(bolder?QFont::Bold:QFont::Normal);
-}
-
-// 斜体
-void MainWindow::on_italic_triggered(bool italic)
-{
-    ui->textEdit->setFontItalic(italic);
-}
-
-// 下划线
-void MainWindow::on_underline_triggered(bool underline)
-{
-    ui->textEdit->setFontUnderline(underline);
-}
-
 
 void MainWindow::on_clear_history_triggered()
 {
     mSettings->remove("history");
     initMenu();
 }
+
+void MainWindow::on_tabWidget_tabCloseRequested(int index)
+{
+    MyCodeEditor * codeEditor = (MyCodeEditor *) ui->tabWidget->currentWidget();
+
+    if(!codeEditor->checkSaved()) {
+        QMessageBox::StandardButton btn = QMessageBox::question(this, "警告", "您还没有保存文档！是否保存？",
+                                                                QMessageBox::Yes|QMessageBox::No|QMessageBox::Cancel);
+        if (btn == QMessageBox::Yes) {
+            if(codeEditor->saveFile()) {
+                saveSuccessAction(codeEditor);
+            }
+            return;
+        } else if (btn == QMessageBox::Cancel) {
+            // 对话框的关闭按钮是与QMessageBox::question里面最后一个值绑定的
+            return;
+        }
+    }
+    ui->tabWidget->removeTab(index);
+    delete codeEditor;
+    initAction();
+}
+
+void MainWindow::saveSuccessAction(MyCodeEditor * codeEditor)
+{
+    QString fileName = codeEditor->getFileName();
+    // 保存最近打开文件的历史记录
+    saveHistory(fileName);
+    // 设置tab标题
+    ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), fileName);
+    // 初始化菜单
+    initMenu();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if(ui->tabWidget->count() > 0) {
+        QMessageBox::StandardButton btn = QMessageBox::question(this, "警告", "有保存的文件，确定要关闭吗？",
+                              QMessageBox::Yes | QMessageBox::No);
+        if (btn == QMessageBox::Yes) {
+            event->accept();
+        } else {
+            event->ignore();
+        }
+    }
+}
+

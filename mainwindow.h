@@ -1,7 +1,10 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "mycodeeditor.h"
+
 #include <QMainWindow>
+#include <QSettings>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -15,6 +18,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void saveSuccessAction(MyCodeEditor * codeEditor);
+protected:
+    void closeEvent(QCloseEvent *event) override;
 private slots:
     void on_new_file_triggered();
 
@@ -42,22 +48,26 @@ private slots:
 
     void on_print_triggered();
 
-    void on_bolder_triggered(bool bolder);
-
-    void on_italic_triggered(bool italic);
-
-    void on_underline_triggered(bool underline);
-
     void on_clear_history_triggered();
+
+    void on_tabWidget_tabCloseRequested(int index);
 
 private:
     Ui::MainWindow *ui;
 
-    // 当前文件名
-    QString currentFile;
+    // 配置文件，用于保存打开文件的历史记录
+    QSettings *mSettings;
+
+    QString mfontFamily;
+    int mfontSize;
 
     void initMenu();
+    void initFont();
+    void initAction();
+    void createTab(QString fileName);
 
     void on_open_recent_file();
+    QList<QString> getHistory();
+    void saveHistory(QString path);
 };
 #endif // MAINWINDOW_H

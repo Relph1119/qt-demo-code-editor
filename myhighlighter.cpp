@@ -30,7 +30,11 @@ MyHighlighter::MyHighlighter(QTextDocument *parent, QString fontFamily, int font
     addFunctionFormat();
 }
 
-
+void MyHighlighter::setFont(QFont font)
+{
+    mFontFamily = font.family();
+    mFontSize = font.pointSize();
+}
 
 void MyHighlighter::addNormalTextFormat()
 {

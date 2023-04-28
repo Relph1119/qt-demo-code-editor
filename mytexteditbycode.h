@@ -11,6 +11,7 @@ class MyTextEditByCode: public QWidget
     Q_OBJECT
 public:
     explicit MyTextEditByCode(QWidget *parent = nullptr);
+    ~MyTextEditByCode();
 private slots:
     void onScrollBarChanged();
     void onTextEditHorizontalScrollBarChanged();

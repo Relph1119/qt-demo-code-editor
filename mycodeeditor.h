@@ -1,6 +1,8 @@
 #ifndef MYCODEEDITOR_H
 #define MYCODEEDITOR_H
 
+#include "myhighlighter.h"
+
 #include <QPlainTextEdit>
 #include <QWidget>
 
@@ -10,24 +12,41 @@ class MyCodeEditor : public QPlainTextEdit
 {
     Q_OBJECT
 public:
-    explicit MyCodeEditor(QWidget *parent = nullptr);
+    explicit MyCodeEditor(QWidget *parent = nullptr, QFont font=QFont("Consolas", 14));
+    ~MyCodeEditor();
 
     void lineNumberWidgetPaintEvent(QPaintEvent *event);
     void lineNumberWidgetMousePressEvent(QMouseEvent *event);
     void lineNumberWidgetWheelEvent(QWheelEvent *event);
+
+    bool saveFile();
+    bool saveAsFile();
+    void setFileName(QString fileName);
+    QString getFileName();
+
+    void setAllFont(QFont font);
+
+    bool checkSaved();
+
 private slots:
     void hightlightCurrentLint();
     void updateLineNumberWidget(QRect rect, int dy);
-    void updateLineNumberWidgetWith();
+    void updateLineNumberWidgetWidth();
+    void updateSaveState();
 protected:
     void resizeEvent(QResizeEvent *event) override;
 private:
     void initConnection();
-    void initFont();
     void initHighlighter();
     int getLineNumberWidgetWidth();
 
     LineNumberWidget * lineNumberWidget;
+
+    MyHighlighter *myHighlighter;
+
+    QString mFileName;
+
+    bool isSaved = false;
 signals:
 
 };

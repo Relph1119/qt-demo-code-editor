@@ -5,13 +5,13 @@
 #include <QRect>
 #include <QChar>
 #include <QScrollBar>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QTextStream>
 
-MyCodeEditor::MyCodeEditor(QWidget *parent) : QPlainTextEdit(parent)
+MyCodeEditor::MyCodeEditor(QWidget *parent, QFont font) : QPlainTextEdit(parent)
 {
     lineNumberWidget = new LineNumberWidget(this);
-
-    // 初始字体
-    initFont();
 
     // 绑定
     initConnection();
@@ -19,29 +19,21 @@ MyCodeEditor::MyCodeEditor(QWidget *parent) : QPlainTextEdit(parent)
     // 高亮
     initHighlighter();
 
+    // 设置字体
+    setAllFont(font);
+
     // 当前行高亮
     hightlightCurrentLint();
 
     // 设置边距
-    updateLineNumberWidgetWith();
+    updateLineNumberWidgetWidth();
 
     setLineWrapMode(QPlainTextEdit::NoWrap);
 }
 
-void MyCodeEditor::initFont()
+MyCodeEditor::~MyCodeEditor()
 {
-    this->setFont(QFont("Consolas", 14));
-}
-
-void MyCodeEditor::initHighlighter()
-{
-    new MyHighlighter(document());
-}
-
-int MyCodeEditor::getLineNumberWidgetWidth()
-{
-    // 获取自适应的宽度
-    return 8 + QString::number(blockCount() + 1).length() * fontMetrics().horizontalAdvance(QChar('0'));
+    delete lineNumberWidget;
 }
 
 void MyCodeEditor::initConnection()
@@ -49,11 +41,37 @@ void MyCodeEditor::initConnection()
     // cursor
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(hightlightCurrentLint()));
 
+    // textChanged
+    connect(this, SIGNAL(textChanged()), this, SLOT(updateSaveState()));
+
     // blockCount
-    connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberWidgetWith()));
+    connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberWidgetWidth()));
 
     // updateRequest
-    connect(this, SIGNAL(updateRequest(QRect, int)), this, SLOT(updateLineNumberWidget(QRect, int)));
+    connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateLineNumberWidget(QRect,int)));
+}
+
+void MyCodeEditor::setAllFont(QFont font)
+{
+    this->setFont(font);
+    myHighlighter->setFont(font);
+    updateLineNumberWidgetWidth();
+}
+
+bool MyCodeEditor::checkSaved()
+{
+    return isSaved;
+}
+
+void MyCodeEditor::initHighlighter()
+{
+    myHighlighter = new MyHighlighter(document());
+}
+
+int MyCodeEditor::getLineNumberWidgetWidth()
+{
+    // 获取自适应的宽度
+    return 8 + QString::number(blockCount() + 1).length() * fontMetrics().horizontalAdvance(QChar('0'));
 }
 
 void MyCodeEditor::hightlightCurrentLint()
@@ -79,10 +97,16 @@ void MyCodeEditor::updateLineNumberWidget(QRect rect, int dy)
     }
 }
 
-void MyCodeEditor::updateLineNumberWidgetWith()
+void MyCodeEditor::updateLineNumberWidgetWidth()
 {
     // 设置边距
     setViewportMargins(getLineNumberWidgetWidth(), 0, 0, 0);
+}
+
+void MyCodeEditor::updateSaveState()
+{
+    // 更新保存状态
+    isSaved = false;
 }
 
 void MyCodeEditor::resizeEvent(QResizeEvent *event)
@@ -146,4 +170,65 @@ void MyCodeEditor::lineNumberWidgetWheelEvent(QWheelEvent *event)
     }
     event->accept();
 }
+
+bool MyCodeEditor::saveFile()
+{
+    QString fileName;
+    if (mFileName.isEmpty()) {
+        // 提示用户输入文件名，并获取保存文件的文件名
+        fileName = QFileDialog::getSaveFileName(this, "保存文件");
+        mFileName = fileName;
+    } else {
+        fileName = mFileName;
+    }
+    QFile file(fileName);
+    // 处理文件保存异常
+    if (!file.open(QIODevice::WriteOnly | QFile::Text)) {
+        QMessageBox::warning(this, "警告", "无法保存文件，报错信息：\n" + file.errorString());
+        return false;
+    }
+    // 保存文件内容
+    QTextStream out(&file);
+
+    out << toPlainText();
+    file.close();
+
+    isSaved = true;
+    return true;
+}
+
+bool MyCodeEditor::saveAsFile()
+{
+    // 获取另存为的文件名
+    QString fileName = QFileDialog::getSaveFileName(this, "另存文件");
+
+    QFile file(fileName);
+    // 处理另存为文件异常
+    if (!file.open(QIODevice::WriteOnly | QFile::Text)) {
+        QMessageBox::warning(this, "警告", "无法保存文件，报错信息：\n" + file.errorString());
+        return false;
+    }
+    mFileName = fileName;
+
+    // 保存文件内容
+    QTextStream out(&file);
+    QString text = toPlainText();
+    out << text;
+    file.close();
+
+    isSaved = true;
+    return true;
+}
+
+void MyCodeEditor::setFileName(QString fileName)
+{
+    mFileName = fileName;
+}
+
+QString MyCodeEditor::getFileName()
+{
+    return mFileName;
+}
+
+
 

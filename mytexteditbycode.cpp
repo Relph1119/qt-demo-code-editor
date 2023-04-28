@@ -25,6 +25,13 @@ MyTextEditByCode::MyTextEditByCode(QWidget *parent): QWidget(parent)
     hightlightCurrentLint();
 }
 
+MyTextEditByCode::~MyTextEditByCode()
+{
+    delete textEdit;
+    delete textBrowser;
+    delete scrollBar;
+}
+
 
 void MyTextEditByCode::initWidget()
 {
