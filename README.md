@@ -21,7 +21,7 @@
 
 ## 运行结果展示
 
-[](./resources/app_display.png)
+![app_display](./resources/app_display.png)
 
 ## 学习总结
 
